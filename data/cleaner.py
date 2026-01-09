@@ -44,7 +44,7 @@ class DataCleaner:
         available = [f for f in fields if f in df.columns]
         return df[available]
 
-    def clean(self, data_frame_in: pd.DataFrame, rtis_only: bool = False) -> pd.DataFrame:
+    def clean(self, data_frame_in: pd.DataFrame) -> pd.DataFrame:
         # select relevant columns (fall back to available subset)
         wanted = [
             'id', 'host_id', 'last_review', 'neighbourhood_cleansed', 'latitude', 'longitude',
@@ -97,10 +97,9 @@ class DataCleaner:
             microcells_per_provider = dfin.groupby('providerid')['microcell'].nunique().reset_index(name='microcell_count')
             counts_per_provider = pd.merge(samples_per_provider, microcells_per_provider, on='providerid')
 
-            if rtis_only:
-                filtered_counts_per_provider = counts_per_provider[counts_per_provider['microcell_count'] >= 10]
-            else:
-                filtered_counts_per_provider = counts_per_provider[counts_per_provider['microcell_count'] >= 2]
+            
+            filtered_counts_per_provider = counts_per_provider[counts_per_provider['microcell_count'] >= 10]
+
 
             selected_provider_ids = filtered_counts_per_provider['providerid']
             filtered_df = dfin[dfin['providerid'].isin(selected_provider_ids)]
@@ -121,17 +120,13 @@ class DataCleaner:
 
         return final_df
 
-    def get_cleaned_data(self, file_paths: Optional[List[str]] = None, rtis_only: bool = False,
-                         save_path: Optional[str] = None) -> pd.DataFrame:
-        """Read raw files, clean them and optionally save the cleaned CSV.
-
-        If `file_paths` is None the default New/Sydney listings are used.
-        """
+    def get_cleaned_data(self, file_paths: Optional[List[str]] = None,save_path: Optional[str] = None) -> pd.DataFrame:
+    
         if file_paths is None:
             file_paths = [f"{self.DEFAULT_DIR}/{name}" for name in self.DEFAULT_FILES]
 
         data_frame_in = self._read_files(file_paths)
-        cleaned = self.clean(data_frame_in, rtis_only=rtis_only)
+        cleaned = self.clean(data_frame_in)
 
         if save_path:
             try:

@@ -1,97 +1,175 @@
 
 from typing import Optional, Dict, Any
-
+# from components.general_operations import GeneralOp
+from components import detection
 from components.general_operations import GeneralOp
 from components.replication import Replication
 from components.tampering import Tampering
 from components.detection import Detection
+
+from components.baseline_ifum import BaselineIFUM, Detection
+
+
+from components.baseline_lof import BaselineLOF, Detection
+
+from components.baseline_ocsvm import BaselineOCSVM, Detection
+
 from data.cleaner import DataCleaner
+import gc
 
 
 class Experiment1:
     def __init__(self, config: Optional[dict] = None):
         self.config = config or {}
-        self.general = GeneralOp()
         self.replication = Replication()
         self.tampering = Tampering()
         self.detection = Detection()
         self.cleaner = DataCleaner()
+        self.general=GeneralOp()
+
+        self.ifum_baseline = BaselineIFUM()
+        self.lof_baseline = BaselineLOF()
+        self.ocsvm_baseline = BaselineOCSVM()
+
+        self.data_with_scores = None
+
+
+    def setup(self):
+        # dfin = self.general.open_file_csv('data_alg_16000.csv')
+        if self.data_with_scores is None:
+            dfin = self.cleaner.get_cleaned_data()
+
+            dfin = self.general.slice_df(dfin,['serviceid','providerid','microcell','timestamp','speed','latency','bandwidth','coverage','reliability','security','currect_microcell'])
+            dfin=self.general.add_a_column_with_a_value(dfin,'origin','G')
+            dfin=self.general.add_a_column_with_a_value(dfin,'true_label','C')
+            data_list = self.general.dataframe_devide_to_microcell_dictionary(dfin)
+            data_rep=self.replication.replicate_totally(data_list,dfin)
+            # self.replication.visualize_samples_per_microcell(data_rep)
+            # merged_df = self.general.dictionary_to_merged_df(data_rep)
+            # self.general.save_file(merged_df,'replicated_source.xlsx')
+            self.data_with_scores = data_rep
+            print(data_rep)
+            # data_with_scores = self.general.trust_score_calculation(data_rep,[0.3,0.1,0.2,0.1,0.1,0.2])
+            # self.general.visualize_data_one_value(data_with_scores)
+        else:
+            print("Data with scores already set.")
+        # print(len(dfin['microcell'].unique()))
+
+    def run(self):
+        print("Experiment1 (TDA) running...")
+
+        # experiment plan: run N K S
+        # we nned to run 
+
+        tampering_level = ['N', 'K', 'S']
+        for tampering_type in tampering_level:
+            print("Tampering type: " + tampering_type)
+
+        for tamper_percentage in range(10,100, 10):
+            
+            print(str(tamper_percentage))
+
+            tampered_data_temp = self.tampering.tamper_data1(self.data_with_scores, tamper_percentage, tampering_level, sig=[0.3, 0.1, 0.2, 0.1, 0.1, 0.2])
+            in1 = self.general.trust_score_calculation(tampered_data_temp)
+            # 1. Store your detectors/results in a dictionary
+            detectors = {
+                'tda': self.detection.detect_tampered_records(dfin, in1),
+                'ifum': self.ifum_baseline.baseline_detection(in1),
+                'lof': self.lof_baseline.baseline_detection(in1),
+                'ocsvm': self.ocsvm_baseline.baseline_detection(in1)
+            }
+
+            # 2. Use a list comprehension to calculate all scores dynamically
+            current_scores = []
+            for key in ['tda', 'ifum', 'lof', 'ocsvm']:
+                res = detectors[key]
+                true = res['true_label']
+                pred = res['label']
+                
+                # Extend the list with the three metrics for this model
+                current_scores.extend([
+                    detection.accuracy(true, pred),
+                    detection.precision(true, pred, 'T'),
+                    detection.recall(true, pred, 'T')
+                ])
+
+            list_scores.append(current_scores)
+
+
+            # print(tampered_data_temp)
+                # if hasattr(tampered_data_temp, 'value_counts'):
+                #     print(tampered_data_temp['true_label'].value_counts())
+                
+           
+                # # --- MEMORY CLEANUP ---
+                # del tampered_data_temp
+                # gc.collect()
+
+     
+
+
+
 
         
-    def run(self):
 
-        return self.run(data_df=None, tamper_percent=10, tamper_type="N2")
 
-    def run(self,
-            data_df=None,
-            tamper_percent: int = 10,
-            tamper_type: str = "N2",
-            weights: Optional[list] = None,
-            rtis_only: bool = False) -> Dict[str, Any]:
-        """Run the TDA experiment.
 
-        Parameters
-        - data_df: optional pre-loaded DataFrame. If None the `DataCleaner`
-          will read the default CSVs.
-        - tamper_percent: percentage of microcells to tamper
-        - tamper_type: tampering scenario string (e.g. 'N2','K3','S2')
-        - weights: weight vector for trust score calculation
 
-        Returns a dict with keys: `metrics`, `detected_df`, `cleaned_df` and
-        intermediate dicts used (replicated and scored dictionaries).
-        """
-        weights = weights or [0.3, 0.1, 0.2, 0.1, 0.1, 0.2]
 
-        # 1) load / clean
-        if data_df is None:
-            cleaned = self.cleaner.get_cleaned_data(rtis_only=rtis_only)
-        else:
-            cleaned = data_df
 
-        # 2) slice to the expected columns (same as notebook)
-        fields = ['serviceid','providerid','microcell','timestamp','speed','latency','bandwidth','coverage','reliability','security','currect_microcell']
-        dfin = self.general.slice_df(cleaned, [f for f in fields if f in cleaned.columns])
 
-        # 3) mark origin and true label for original data
-        dfin = self.general.add_a_column_with_a_value(dfin, 'origin', 'G')
-        dfin = self.general.add_a_column_with_a_value(dfin, 'true_label', 'C')
 
-        # 4) split by microcell and replicate
-        data_list = self.general.dataframe_devide_to_microcell_dictionary(dfin)
-        data_rep = self.replication.replicate_totally(data_list, dfin)
 
-        # 5) compute trust scores on replicated data (show progress if tqdm available)
-        try:
-            self.general.show_progress = True
-        except Exception:
-            pass
-        data_with_scores = self.general.trust_score_calculation(data_rep, weights)
+# for j in range(1, 5):
+#     list_scores = []
+#     for i in range(1): 
+#         print(str(j) + "  " + str(i))
+        
+#         # Tamper data
+#         # tampered_data_temp = tampering.tamper_data1(data_with_scores, (sp_percentage * j) / 2, tampering_level, sig=[0.3, 0.1, 0.2, 0.1, 0.1, 0.2])
+        
+#         # Calculate trust scores
+#         # tampered_data = general.trust_score_calculation(tampered_data_temp, [0.3, 0.1, 0.2, 0.1, 0.1, 0.2])
+#         in1 = general.trust_score_calculation(tampering.tamper_data1(data_with_scores, (sp_percentage * j) / 2, tampering_level, sig=[0.3, 0.1, 0.2, 0.1, 0.1, 0.2]), [0.3, 0.1, 0.2, 0.1, 0.1, 0.2])
+#         in2= general.trust_score_calculation(tampering.tamper_data1(data_with_scores, (sp_percentage * j) / 2, tampering_level, sig=[0.3, 0.1, 0.2, 0.1, 0.1, 0.2]), [0.3, 0.1, 0.2, 0.1, 0.1, 0.2])
+#         in3= general.trust_score_calculation(tampering.tamper_data1(data_with_scores, (sp_percentage * j) / 2, tampering_level, sig=[0.3, 0.1, 0.2, 0.1, 0.1, 0.2]), [0.3, 0.1, 0.2, 0.1, 0.1, 0.2])
+#         in4 = general.trust_score_calculation(tampering.tamper_data1(data_with_scores, (sp_percentage * j) / 2, tampering_level, sig=[0.3, 0.1, 0.2, 0.1, 0.1, 0.2]), [0.3, 0.1, 0.2, 0.1, 0.1, 0.2])
+#         # Detect tampered records using the original baseline
+#         data_detected_tda = detection.detect_tampered_records(dfin, in1)
+#         data_detected_ifum = ifum_baseline.baseline_detection(in2)
+#         data_detected_lof = lof_baseline.baseline_detection(in3)
+#         data_detected_ocsvm = ocsvm_baseline.baseline_detection(in4)
+        
+#         # Calculate scores for both baselines
+#         list_scores.append([
+#             detection.accuracy(data_detected_tda['true_label'], data_detected_tda['label']),
+#             detection.precision(data_detected_tda['true_label'], data_detected_tda['label'], 'T'),
+#             detection.recall(data_detected_tda['true_label'], data_detected_tda['label'], 'T'),
+#             detection.accuracy(data_detected_ifum['true_label'], data_detected_ifum['label']),
+#             detection.precision(data_detected_ifum['true_label'], data_detected_ifum['label'], 'T'),
+#             detection.recall(data_detected_ifum['true_label'], data_detected_ifum['label'], 'T'),
+#             detection.accuracy(data_detected_lof['true_label'], data_detected_lof['label']),
+#             detection.precision(data_detected_lof['true_label'], data_detected_lof['label'], 'T'),
+#             detection.recall(data_detected_lof['true_label'], data_detected_lof['label'], 'T'),
+#             detection.accuracy(data_detected_ocsvm['true_label'], data_detected_ocsvm['label']),
+#             detection.precision(data_detected_ocsvm['true_label'], data_detected_ocsvm['label'], 'T'),
+#             detection.recall(data_detected_ocsvm['true_label'], data_detected_ocsvm['label'], 'T')
+#         ])
+    
+#     # Convert list to numpy array and calculate the average for each column
+#     data_array = np.array(list_scores)
+#     column_averages = np.mean(data_array, axis=0)
+#     dic_score_list[j] = column_averages
 
-        # 6) apply tampering and recompute trust scores for tampered data
-        tampered = self.tampering.tamper_data1(data_with_scores, tamper_percent, tamper_type, sig=weights)
-        tampered_with_scores = self.general.trust_score_calculation(tampered, weights)
 
-        # 7) run detection (TDA)
-        detected = self.detection.detect_tampered_records(dfin, tampered_with_scores)
 
-        # 8) compute metrics
-        metrics = {}
-        try:
-            y_true = detected['true_label']
-            y_pred = detected['label']
-            metrics['accuracy'] = self.detection.accuracy(y_true, y_pred)
-            metrics['precision'] = self.detection.precision(y_true, y_pred, 'T')
-            metrics['recall'] = self.detection.recall(y_true, y_pred, 'T')
-        except Exception:
-            metrics['accuracy'] = metrics['precision'] = metrics['recall'] = None
 
-        return {
-            'experiment': 'Experiment1',
-            'method': 'TDA',
-            'metrics': metrics,
-            'detected_df': detected,
-            'cleaned_df': dfin,
-            'replicated_dict': data_rep,
-            'scored_dict': data_with_scores,
-            'tampered_scored_dict': tampered_with_scores,
-        }
+
+
+
+
+    def report(self):
+        print("Experiment 1 (TDA) completed. Effectiveness results are available in the output DataFrame.")
+
+   
+ 
