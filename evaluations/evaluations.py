@@ -6,6 +6,7 @@ import pandas as pd
 
 from evaluations.evaluation_data.evaluation_data import EvaluationData
 from tampering.tampering import Tampering
+from timf.timf import TIMF
 
 
 class Evaluations:
@@ -19,6 +20,7 @@ class Evaluations:
             self.data=None
         self.evaluation_data = EvaluationData()
         self.tampering = Tampering()
+        self.timf = TIMF()
 
         pass
 
@@ -32,18 +34,25 @@ class Evaluations:
             for tampering_percentage in range(10,100,10):
                 print("Running experiment 1 with tampering type:", tampering_type, "and tampering percentage:", tampering_percentage)
                 tampered_data = self.tampering.tamper_data(self._dataframe_devide_to_microcell_dictionary(self.data), tampering_percentage, tampering_type)
-                # print(tampered_data)
-                print(self._dictionary_to_merged_df(tampered_data)['true_label'].value_counts())
+                
+                # Set tampered data in TIMF's data service
+                self.timf.set_data(tampered_data)
+
+                # For each provider in each microcell, run trust assessment
+                for microcell in self.data['microcell'].unique():
+                    df_microcell = self.data[self.data['microcell'] == microcell]
+                    print("Microcell:", microcell)
+
+                    for provider in df_microcell['providerid'].unique():
+                        print(" Provider:", provider)
+                        trust_score = self.timf.get_trust_assessment(microcell, provider)
+                        print(f"  Trust score: {trust_score}")
 
 
 
 
                 
     
-
-
-
-
 
 
 
@@ -65,18 +74,7 @@ class Evaluations:
         for microcell in unique_keys:
             temp_dictionary["{}".format(microcell)] = df[df.microcell==microcell]
         return temp_dictionary
-        # seen_providers = set()
-        # #select a randon microcell, random provider
-        # for microcell in self.data['microcell'].unique():
-        #     df_microcell = self.data[self.data['microcell'] == microcell]
-        #     print("Microcell:", microcell)
-
-        #     for provider in df_microcell['providerid'].unique():
-        #         if provider in seen_providers:
-        #             continue
-
-        #         seen_providers.add(provider)
-        #         print(" Provider:", provider)
+      
 
 
 

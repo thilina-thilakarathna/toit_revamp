@@ -9,7 +9,7 @@ class Detection:
     def __init__(self):
         pass
 
-    def detect_tampered_records(self,correct_data,tampered_data):
+    def detect_tampered_records(self,correct_data, ):
         general = GeneralOp()
 
         results_review ={}
