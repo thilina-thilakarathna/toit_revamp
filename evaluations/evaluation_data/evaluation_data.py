@@ -10,17 +10,42 @@ class EvaluationData:
         self.data = None
 
     def get_data(self):
+        """
+        Get evaluation data. If CSV exists, load and return it. Otherwise, create new data.
+        
+        Returns:
+            DataFrame with evaluation data including origin and true_label columns
+        """
+        # Try to load existing CSV
+        try:
+            data = pd.read_csv('evaluations/evaluation_data/evaluation_data.csv')
+            print("Loaded existing evaluation data from CSV.")
+            return data
+        except FileNotFoundError:
+            print("No existing evaluation data found. It will be created.")
+        except Exception as e:
+            print(f"Error loading evaluation data: {e}")
+        
+        # CSV not available - run full data preparation
+        print("Preparing evaluation data environment...")
+        
+        # Load raw data
         if self.data is None:
             self._load_data()
-        print("Preparing evaluation data environment...")
-        dfin = self.data[['serviceid','providerid','microcell','latitude','longitude','timestamp','speed','latency','bandwidth','coverage','reliability','security','currect_microcell']].copy()
-        dfin['origin']='G'
-        dfin['true_label']='C'
+        
+        # Prepare data with origin and true_label
+        dfin = self.data[['serviceid','providerid','microcell','latitude','longitude','timestamp',
+                          'speed','latency','bandwidth','coverage','reliability','security','currect_microcell']].copy()
+        dfin['origin'] = 'G'
+        dfin['true_label'] = 'C'
+        
         print("Replicating data ...")
         merged_df = self._replicate_partially(dfin)
         self.plot_record_counts_per_microcell(merged_df)
         print("Data environment is ready.")
-        merged_df.to_csv('evaluations/evaluation_data/evaluation_data.csv',index=False)
+        
+        # Save to CSV for future use
+        merged_df.to_csv('evaluations/evaluation_data/evaluation_data.csv', index=False)
         return merged_df
     
     def plot_record_counts_per_microcell(self, df):

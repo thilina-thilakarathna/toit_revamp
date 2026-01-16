@@ -1,0 +1,15 @@
+name: toit_revamp
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pandas
+  - numpy
+  - scikit-learn
+  - matplotlib
+  - jupyter
+  - ipykernel
+  - pip
+  - pip:
+    # Add any pip-only packages here if needed
