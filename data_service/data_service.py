@@ -15,13 +15,13 @@ class DataService:
    
     
     def get_local_data(self, microcell, provider_id):
-        mask = (self.tampered_data['microcell'] == str(microcell)) & \
-               (self.tampered_data['providerid'] == provider_id)
-        return self.tampered_data[mask].copy()
-    
+        mask = (self.local_data['currect_microcell'] == str(microcell)) & \
+               (self.local_data['providerid'] == provider_id)
+        return self.local_data[mask].copy()
+
     def get_remote_data(self, microcell, provider_id):
-        mask = (self.tampered_data['microcell'] != str(microcell)) & \
-               (self.tampered_data['providerid'] == provider_id)
-        return self.tampered_data[mask].copy()
+        mask = (self.remote_data['gen_microcell'] != str(microcell)) & \
+               (self.remote_data['providerid'] == provider_id)
+        return self.remote_data[mask].copy()
     
    

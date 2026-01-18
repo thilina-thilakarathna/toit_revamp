@@ -10,6 +10,7 @@ class TIMF:
         
         # Initialize TDA (Tampering Detection Approach)
         self.tda = Detection(self.data_service)
+        self.trust_assessor = TrustAssessment([0.3,0.1,0.2,0.1,0.1,0.2])
         
         # Initialize Trust Assessment with weight matrix
         if weight_matrix is None:
@@ -21,7 +22,7 @@ class TIMF:
         local_data = self.data_service.get_local_data(microcell_id, provider_id)
         remote_data = self.data_service.get_remote_data(microcell_id, provider_id)
         
-        trust_score,df = self.tda.detect_tampered_records(local_data, provider_id, microcell_id)
-        return trust_score,df
+        df = self.tda.detect_tampered_records(local_data,remote_data, provider_id, microcell_id)
+        return self.trust_assessor.calculate(df),df
         
        

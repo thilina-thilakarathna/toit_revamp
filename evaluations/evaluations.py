@@ -1,10 +1,3 @@
-"""
-Evaluation framework for Trust Information Management Framework (TIMF).
-
-This module provides controlled experiments to evaluate TIMF under various
-tampering scenarios in a crowdsourced IoT environment.
-"""
-
 import pandas as pd
 from evaluations.evaluation_data.evaluation_data import EvaluationData
 from tampering.tampering import Tampering
@@ -16,8 +9,6 @@ class Evaluations:
     def __init__(self):
         self.evaluation_data = EvaluationData()
         self.tampering = Tampering()
-        
-        # Initialize DataService and TIMF properly
         self.data_service = DataService()
         self.timf = TIMF(self.data_service)
 
@@ -27,47 +18,20 @@ class Evaluations:
         print("Experment setup is complete.")
         
     def experiment_1(self, tampering_percentages=None, tampering_types=None):
-        """
-        Run experiment 1: Evaluate TIMF under controlled tampering scenarios.
-        
-        This experiment:
-        - Applies synthetic tampering to data
-        - Varies tampering percentage and type
-        - Runs trust assessment for each provider in each microcell
-        - Records results
-        
-        Args:
-            tampering_percentages: List of percentages to test (default: 10 to 90 in steps of 10)
-            tampering_types: List of tampering types ["N", "K", "S"] (default: all)
-        
-        Returns:
-            results: Dictionary with experiment results
-        """
+
         if tampering_percentages is None:
             tampering_percentages = list(range(10, 100, 10))
         if tampering_types is None:
             tampering_types = ["N", "K", "S"]  # Naive, Knowledgeable, Sophisticated
         
         results = []
-        
-        
-        untampered_data = self.data.copy()
-        
+   
         for tampering_type in tampering_types:
             for tampering_percentage in tampering_percentages:
                 print(f"Experiment: Tampering Type={tampering_type}, Percentage={tampering_percentage}%")
         
-             
-
-                # For each provider in each microcell, run trust assessment
                 for microcell in self.data['microcell'].unique():
                     df_microcell = self.data[self.data['microcell'] == microcell]
-                    # print(f"\nMicrocell: {microcell}")
-
-                    # --- Per-microcell tampering setup ---
-                    local_key = str(microcell)
-
-              
                     spa_tampered_dict = self.tampering.spa_tampering(
                         self.data[self.data['microcell'] == microcell],
                         sp_percent=100,              # always tamper the local microcell
