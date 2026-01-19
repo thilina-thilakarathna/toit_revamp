@@ -7,6 +7,7 @@ class TrustAssessment:
 
 
     def calculate(self,datain):
+            datain=datain.copy()
             datain['trust_score'] = (
             datain['speed'] * self.weight_matrix[0] +
             datain['latency'] * self.weight_matrix[1] +

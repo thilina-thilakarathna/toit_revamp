@@ -61,7 +61,6 @@ class Tampering:
         elif type == "S":
             if not dftamper.empty:
 
-
                 p = 0.3  # probability of tampering (controls stealth level)
 
                 # dftamper['TS'] = sum(
@@ -94,7 +93,7 @@ class Tampering:
         return dftamper
 
 
-    def bma_tampering(self, data, sp_percent, type, each_attribute=30, val=2, sig=[0.3,0.1,0.2,0.1,0.1,0.2]):
+    def bma_tampering(self, data, sp_percent, type, each_attribute=40, val=2, sig=[0.3,0.1,0.2,0.1,0.1,0.2]):
         result_df = data.copy()
         unique_microcells = data['gen_microcell'].unique()
         sp_amount = round(len(unique_microcells) * (sp_percent / 100))
@@ -118,10 +117,18 @@ class Tampering:
             
 
             elif type == "K":
+                
                 if not dftamper.empty:
+                    num_rows_to_tamper = int(0.5 * len(dftamper))
+                    rows_to_tamper = np.random.choice(
+                    dftamper.index,
+                    num_rows_to_tamper,
+                    replace=False )
+
                     highest_3 = sorted(sig, reverse=True)[:3]
                     result = [1 if value in highest_3 else 0 for value in sig]
-                    for line in range(0, dftamper.shape[0]):
+
+                    for line in rows_to_tamper:
                         dftamper.loc[line, 'speed'] = min(round(dftamper.loc[line, 'speed'] * (1 - result[0]*(each_attribute / 100))), val)
                         dftamper.loc[line, 'latency'] = min(round(dftamper.loc[line, 'latency'] * (1 - result[1]*(each_attribute / 100))), val)
                         dftamper.loc[line, 'bandwidth'] = min(round(dftamper.loc[line, 'bandwidth'] * (1 - result[2]*(each_attribute / 100))), val)
