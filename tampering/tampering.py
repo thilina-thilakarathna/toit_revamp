@@ -7,6 +7,7 @@ import pandas as pd
 
 class Tampering:
     def __init__(self):
+
         pass
 
     def spa_tampering(self, data, type, each_attribute=10, val=5, sig=[1/6,1/6,1/6,1/6,1/6,1/6]):
@@ -21,25 +22,79 @@ class Tampering:
                 dftamper.loc[rows_to_tamper, 'true_label'] = 'T'
                 dftamper.loc[rows_to_tamper, 'true_label_spa'] = 'T'
             
-
         elif type == "K":
             if not dftamper.empty:
+
+                num_rows_to_tamper = int(0.5 * len(dftamper))
+                rows_to_tamper = np.random.choice(
+                    dftamper.index,
+                    num_rows_to_tamper,
+                    replace=False
+                )
+
                 highest_3 = sorted(sig, reverse=True)[:3]
                 result = [1 if value in highest_3 else 0 for value in sig]
-                for line in range(0, dftamper.shape[0]):
-                    dftamper.loc[line, 'speed'] = min(round(dftamper.loc[line, 'speed'] * (1 + result[0]*(each_attribute / 100))), val)
-                    dftamper.loc[line, 'latency'] = min(round(dftamper.loc[line, 'latency'] * (1 + result[1]*(each_attribute / 100))), val)
-                    dftamper.loc[line, 'bandwidth'] = min(round(dftamper.loc[line, 'bandwidth'] * (1 + result[2]*(each_attribute / 100))), val)
-                    dftamper.loc[line, 'coverage'] = min(round(dftamper.loc[line, 'coverage'] * (1 + result[3]*(each_attribute / 100))), val)
-                    dftamper.loc[line, 'reliability'] = min(round(dftamper.loc[line, 'reliability'] * (1 + result[4]*(each_attribute / 100))), val)
-                    dftamper.loc[line, 'security'] = min(round(dftamper.loc[line, 'security'] * (1 + result[5]*(each_attribute / 100))), val)
+
+                for line in rows_to_tamper:
+                    dftamper.loc[line, 'speed'] = min(
+                        round(dftamper.loc[line, 'speed'] * (1 + result[0]*(each_attribute / 100))), val
+                    )
+                    dftamper.loc[line, 'latency'] = min(
+                        round(dftamper.loc[line, 'latency'] * (1 + result[1]*(each_attribute / 100))), val
+                    )
+                    dftamper.loc[line, 'bandwidth'] = min(
+                        round(dftamper.loc[line, 'bandwidth'] * (1 + result[2]*(each_attribute / 100))), val
+                    )
+                    dftamper.loc[line, 'coverage'] = min(
+                        round(dftamper.loc[line, 'coverage'] * (1 + result[3]*(each_attribute / 100))), val
+                    )
+                    dftamper.loc[line, 'reliability'] = min(
+                        round(dftamper.loc[line, 'reliability'] * (1 + result[4]*(each_attribute / 100))), val
+                    )
+                    dftamper.loc[line, 'security'] = min(
+                        round(dftamper.loc[line, 'security'] * (1 + result[5]*(each_attribute / 100))), val
+                    )
+
                     dftamper.loc[line, 'true_label'] = 'T'
-                    dftamper.loc[line, 'true_label_'] = 'T'
+                    dftamper.loc[line, 'true_label_spa'] = 'T'
+
+        elif type == "S":
+            if not dftamper.empty:
+
+
+                p = 0.3  # probability of tampering (controls stealth level)
+
+                # dftamper['TS'] = sum(
+                #         weights[col] * dftamper[col] for col in weights
+                #     )
+                
+                dftamper = self.trust_astimation(dftamper.copy(),[0.3,0.1,0.2,0.1,0.1,0.2])
+
+                grouped = dftamper.groupby('providerid')
+                for providerid, group_df in grouped:
+                        # need at least 2 records to compute meaningful statistics
+                    if len(group_df) < 2:
+                        continue
+                        # median TS used to identify weak trust records we assume they have knowlege about the importance of attributes
+
+
+                    ts_median = group_df['TS'].median()
+                        # provider-level mean behavior (used for smoothing)
+                    attr_means = group_df[['speed', 'latency', 'bandwidth','coverage', 'reliability', 'security']].mean()
+                    for idx in group_df.index:
+                            # probabilistically tamper only low-TS records
+                        if (group_df.loc[idx, 'TS'] < ts_median and np.random.rand() < p):
+                            for attr in attr_means.index:
+                                dftamper.loc[idx, attr] = round((dftamper.loc[idx, attr] + attr_means[attr]) / 2, 2)
+                                dftamper.loc[idx, 'true_label'] = 'T'
+                                dftamper.loc[idx, 'true_label_spa'] = 'T'
+
+
 
         return dftamper
 
 
-    def bma_tampering(self, data, sp_percent, type, each_attribute=30, val=0, sig=[0.3,0.1,0.2,0.1,0.1,0.2]):
+    def bma_tampering(self, data, sp_percent, type, each_attribute=30, val=2, sig=[0.3,0.1,0.2,0.1,0.1,0.2]):
         result_df = data.copy()
         unique_microcells = data['gen_microcell'].unique()
         sp_amount = round(len(unique_microcells) * (sp_percent / 100))
@@ -75,21 +130,35 @@ class Tampering:
                         dftamper.loc[line, 'security'] = min(round(dftamper.loc[line, 'security'] * (1 - result[5]*(each_attribute / 100))), val)
                         dftamper.loc[line, 'true_label'] = 'T'
                         dftamper.loc[line, 'true_label_bma'] = 'T'
+            
+            elif type == "S":
+                if not dftamper.empty:
+                    
+                    dftamper = self.trust_astimation(dftamper.copy(),[0.3,0.1,0.2,0.1,0.1,0.2])
 
-            # elif type == "S":
-            #     if not dftamper.empty:
-            #         grouped = dftamper.groupby('providerid')
-            #         for providerid, group_df in grouped:
-            #             if len(group_df) >= 2:
-            #                 lowest_index = group_df['TS'].idxmin()
 
-            #                 dftamper.loc[lowest_index, 'speed'] = group_df['speed'].mean()
-            #                 dftamper.loc[lowest_index, 'latency'] = group_df['latency'].mean() 
-            #                 dftamper.loc[lowest_index, 'bandwidth'] = group_df['bandwidth'].mean() 
-            #                 dftamper.loc[lowest_index, 'coverage'] = group_df['coverage'].mean() 
-            #                 dftamper.loc[lowest_index, 'reliability'] = group_df['reliability'].mean() 
-            #                 dftamper.loc[lowest_index, 'security'] =  group_df['security'].mean() 
-            #                 dftamper.loc[lowest_index, 'true_label'] = 'T'
+                    p = 0.3  # probability of bad-mouthing (stealth level)
+                    grouped = dftamper.groupby('providerid')
+                    for providerid, group_df in grouped:
+                        if len(group_df) < 2:
+                            continue
+
+
+                        ts_median = group_df['TS'].median()
+                    # print(ts_median)
+                            # provider-level mean behavior (used for soft degradation)
+                        attr_means = group_df[['speed', 'latency', 'bandwidth','coverage', 'reliability', 'security']].mean()
+                        for idx in group_df.index:
+                            if (group_df.loc[idx, 'TS'] > ts_median and np.random.rand() < p):      
+                                for attr in attr_means.index:
+                                    dftamper.loc[idx, attr] = round((dftamper.loc[idx, attr] + attr_means[attr]) / 2, 2)
+                                    dftamper.loc[idx, 'true_label'] = 'T'
+                                    dftamper.loc[idx, 'true_label_bma'] = 'T'
+
+
+
+
+
 
 
             tampered_data = pd.concat([tampered_data, dftamper], ignore_index=True) 
@@ -100,6 +169,15 @@ class Tampering:
 
 
 
+    def trust_astimation(self,datain,weight_matrix):
+            datain['TS'] = (
+            datain['speed'] * weight_matrix[0] +
+            datain['latency'] * weight_matrix[1] +
+            datain['bandwidth'] * weight_matrix[2] +
+            datain['coverage'] * weight_matrix[3] +
+            datain['reliability'] * weight_matrix[4] +
+            datain['security'] * weight_matrix[5]) 
+            return datain
  
         
    
