@@ -13,11 +13,6 @@ class TIMF:
         self.tda = Detection(self.data_service)
         self.tda_baseline = BaselineTda()
         self.trust_assessor = TrustAssessment([0.3,0.1,0.2,0.1,0.1,0.2])
-        
-        # Initialize Trust Assessment with weight matrix
-        if weight_matrix is None:
-            weight_matrix = [1/6, 1/6, 1/6, 1/6, 1/6, 1/6]  # Equal weights
-        self.trust_assessor = TrustAssessment(weight_matrix)
 
     def trust_assessment(self, provider_id, microcell_id):
         # Step 1: Retrieve trust information from distributed environment
