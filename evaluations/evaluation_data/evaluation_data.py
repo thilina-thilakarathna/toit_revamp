@@ -209,7 +209,7 @@ class EvaluationData:
         counts_per_provider = pd.merge(samples_per_provider, microcells_per_provider, on='providerid')
 
         
-        filtered_counts_per_provider = counts_per_provider[counts_per_provider['microcell_count'] >= 2]
+        filtered_counts_per_provider = counts_per_provider[counts_per_provider['microcell_count'] >= 10]
       
 
         selected_provider_ids = filtered_counts_per_provider['providerid']

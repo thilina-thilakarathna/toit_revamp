@@ -1,58 +1,66 @@
+import time
 import numpy as np
-import pandas as pd
-from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import OneClassSVM
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
-from timf.trust_assessment.trust_assessment import TrustAssessment
 
 
 class BaselineTda:
     def __init__(self):
-        pass
+        self.attrs = ['speed', 'latency', 'bandwidth', 'coverage', 'reliability', 'security']
 
-    def baseline_detection(self, df_provider):
-        """
-        Applies three baseline tampering detection methods:
-        1. Isolation Forest
-        2. Local Outlier Factor
-        3. One-Class SVM
-        Returns:
-            Dictionary of DataFrames with method-specific labels ('C' normal, 'T' tampered)
-        """
-        attrs = ['speed', 'latency', 'bandwidth', 'coverage', 'reliability', 'security']
-
-
+    # -----------------------
+    # Shared preprocessing
+    # -----------------------
+    def _prepare_X(self, df_provider):
         df_provider = df_provider.reset_index(drop=True).copy()
-        X = df_provider[attrs]
-        X += np.random.normal(0, 1e-6, X.shape)
+
+        X = df_provider[self.attrs].to_numpy(dtype=float)
+
+        # tiny noise to avoid duplicate-value warnings (esp LOF)
+        X = X + np.random.normal(0, 1e-6, X.shape)
 
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
 
-        results = {}
+        return df_provider, X_scaled
 
-        # ---------- Isolation Forest ----------
-        iso = IsolationForest(contamination=0.1, random_state=42)
-        iso_labels = iso.fit_predict(X_scaled)
-        df_iso = df_provider.copy()
-        df_iso['label'] = ['C' if l != -1 else 'T' for l in iso_labels]
-        results['IsolationForest'] = df_iso
+    # =========================================================
+    # Public API: 3 separate methods (each runs end-to-end)
+    # =========================================================
+    def run_isolation_forest(self, df_provider, contamination=0.1, random_state=42):
+        df_provider, X_scaled = self._prepare_X(df_provider)
 
-        # ---------- Local Outlier Factor ----------
-        lof = LocalOutlierFactor(n_neighbors=10, contamination=0.1)
-        lof_labels = lof.fit_predict(X_scaled)
-        df_lof = df_provider.copy()
-        df_lof['label'] = ['C' if l != -1 else 'T' for l in lof_labels]
-        results['LOF'] = df_lof
+        start = time.time()
+        iso = IsolationForest(contamination=contamination, random_state=random_state)
+        labels = iso.fit_predict(X_scaled)
+        elapsed = time.time() - start
 
-        # ---------- One-Class SVM ----------
-        ocsvm = OneClassSVM(nu=0.1, kernel='rbf', gamma='scale')
-        ocsvm_labels = ocsvm.fit_predict(X_scaled)
-        df_ocsvm = df_provider.copy()
-        df_ocsvm['label'] = ['C' if l != -1 else 'T' for l in ocsvm_labels]
-        results['OCSVM'] = df_ocsvm
+        df_out = df_provider.copy()
+        df_out['label'] = np.where(labels == -1, 'T', 'C')
+        return df_out, {'records': df_out.shape[0], 'time': elapsed}
 
-        return results
+    def run_lof(self, df_provider, n_neighbors=10, contamination=0.1):
+        df_provider, X_scaled = self._prepare_X(df_provider)
 
+        start = time.time()
+        lof = LocalOutlierFactor(n_neighbors=n_neighbors, contamination=contamination)
+        labels = lof.fit_predict(X_scaled)
+        elapsed = time.time() - start
+
+        df_out = df_provider.copy()
+        df_out['label'] = np.where(labels == -1, 'T', 'C')
+        return df_out, {'records': df_out.shape[0], 'time': elapsed}
+
+    def run_ocsvm(self, df_provider, nu=0.1, kernel='rbf', gamma='scale'):
+        df_provider, X_scaled = self._prepare_X(df_provider)
+
+        start = time.time()
+        ocsvm = OneClassSVM(nu=nu, kernel=kernel, gamma=gamma)
+        labels = ocsvm.fit_predict(X_scaled)
+        elapsed = time.time() - start
+
+        df_out = df_provider.copy()
+        df_out['label'] = np.where(labels == -1, 'T', 'C')
+        return df_out, {'records': df_out.shape[0], 'time': elapsed}
