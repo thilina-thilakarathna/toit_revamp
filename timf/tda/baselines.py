@@ -30,6 +30,7 @@ class BaselineTda:
     # Public API: 3 separate methods (each runs end-to-end)
     # =========================================================
     def run_isolation_forest(self, df_provider, contamination=0.1, random_state=42):
+        # print(df_provider.shape[0])
         df_provider, X_scaled = self._prepare_X(df_provider)
 
         start = time.time()
@@ -42,6 +43,7 @@ class BaselineTda:
         return df_out, {'records': df_out.shape[0], 'time': elapsed}
 
     def run_lof(self, df_provider, n_neighbors=10, contamination=0.1):
+        # print(df_provider.shape[0])
         df_provider, X_scaled = self._prepare_X(df_provider)
 
         start = time.time()
@@ -54,6 +56,7 @@ class BaselineTda:
         return df_out, {'records': df_out.shape[0], 'time': elapsed}
 
     def run_ocsvm(self, df_provider, nu=0.1, kernel='rbf', gamma='scale'):
+        # print(df_provider.shape[0])
         df_provider, X_scaled = self._prepare_X(df_provider)
 
         start = time.time()
