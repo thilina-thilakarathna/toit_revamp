@@ -56,10 +56,7 @@ class Sophistication:
         df_sct = tampered_data.copy()
 
         # confirmed local tampering (LT) among received
-        # df_received = df_sct[(df_sct['origin'] == 'R') & (df_sct['label_test'] == 'LT')].copy()
-
-        df_received = df_sct[(df_sct['label'] == 'T')].copy()
-        # print(df_received.columns)
+        df_received = df_sct[(df_sct['origin'] == 'R') & (df_sct['label_test'] == 'LT')].copy()
         if df_received.empty:
             return (None, {}) if return_debug else None
 
@@ -174,20 +171,16 @@ class Sophistication:
     # Decision rule (tuned)
     # =========================================================
     def classify_sophistication(self, mean_impact, mean_sig, mean_trend,
-                                t_N_impact=0.15,
-                                t_S_impact=0.03,
+                                t_N_impact=0.12,
+                                t_S_impact=0.04,
                                 t_S_trend=0.95):
         # Naive: big deviations from origin
-
-        if mean_impact <= t_S_impact and mean_trend >= t_S_trend:
-            return "S"
-        
-        if mean_sig<0.31 and mean_impact<t_S_trend:
+        if mean_impact >= t_N_impact:
             return "N"
 
-        # # Sophisticated: small deviation AND very camouflaged
-        # if mean_impact <= t_S_impact and mean_trend >= t_S_trend:
-        #     return "S"
+        # Sophisticated: small deviation AND very camouflaged
+        if mean_impact <= t_S_impact and mean_trend >= t_S_trend:
+            return "S"
 
         # Knowledgeable: moderate deviation / partial camouflage
         return "K"
@@ -668,234 +661,234 @@ def plot_microcell_cluster_centers(features_by_type, mic_id, k=3, random_state=4
 
 #         return trend_list
     
- 
 
 
- # from matplotlib import pyplot as plt
-# import numpy as np
-# import pandas as pd
 
-# ATTRS = ['speed', 'latency', 'bandwidth', 'coverage', 'reliability', 'security']
-# D_COLS = [f"D_{a}" for a in ATTRS]
+from matplotlib import pyplot as plt
+import numpy as np
+import pandas as pd
+
+ATTRS = ['speed', 'latency', 'bandwidth', 'coverage', 'reliability', 'security']
+D_COLS = [f"D_{a}" for a in ATTRS]
 
 
-# class Sophistication:
-#     def __init__(self):
-#         pass
+class Sophistication:
+    def __init__(self):
+        pass
 
-#     def detect_sophistication(self, remote_data, tampered_data, weight):
-#         if 'BMP' in tampered_data['label'].unique():
-#             print("@@@@@@@@@")
+    def detect_sophistication(self, remote_data, tampered_data, weight):
+        if 'BMP' in tampered_data['label'].unique():
+            print("@@@@@@@@@")
 
         
  
-#         # print(tampered_data.columns)
-#         df_sct = tampered_data.copy()
+        # print(tampered_data.columns)
+        df_sct = tampered_data.copy()
 
 
-#         df_received = df_sct[df_sct['label_test'] == 'LT']
+        df_received = df_sct[df_sct['label_test'] == 'LT']
 
 
    
 
-#         # df_sct = df_sct[df_sct['label'] == 'T'].copy()
-#         # df2 = df_sct
-#         # df2_received = df2[(df2['label_test'] == 'LT') & (df2['origin'] == 'R')].copy()
-#         if not df_received.empty:
-#             df2_received = self._process_received_data(df_received, remote_data)
+        # df_sct = df_sct[df_sct['label'] == 'T'].copy()
+        # df2 = df_sct
+        # df2_received = df2[(df2['label_test'] == 'LT') & (df2['origin'] == 'R')].copy()
+        if not df_received.empty:
+            df2_received = self._process_received_data(df_received, remote_data)
 
-#         else:
-#             print("empty")
-#         combined_microcell_df = df2_received
+        else:
+            print("empty")
+        combined_microcell_df = df2_received
 
-#         if combined_microcell_df.empty:
-#             return
+        if combined_microcell_df.empty:
+            return
 
-#         #     # filter out NC comparisons
-#         combined_microcell_df = combined_microcell_df[combined_microcell_df['D_speed'] != 'NC'].copy()
+        #     # filter out NC comparisons
+        combined_microcell_df = combined_microcell_df[combined_microcell_df['D_speed'] != 'NC'].copy()
 
-#         #     # optional: filter zeros
-#         combined_microcell_df = combined_microcell_df[
-#                 (combined_microcell_df['speed'] != 0) &
-#                 (combined_microcell_df['latency'] != 0) &
-#                 (combined_microcell_df['bandwidth'] != 0) &
-#                 (combined_microcell_df['coverage'] != 0) &
-#                 (combined_microcell_df['reliability'] != 0) &
-#                 (combined_microcell_df['security'] != 0)
-#             ].copy()
+        #     # optional: filter zeros
+        combined_microcell_df = combined_microcell_df[
+                (combined_microcell_df['speed'] != 0) &
+                (combined_microcell_df['latency'] != 0) &
+                (combined_microcell_df['bandwidth'] != 0) &
+                (combined_microcell_df['coverage'] != 0) &
+                (combined_microcell_df['reliability'] != 0) &
+                (combined_microcell_df['security'] != 0)
+            ].copy()
 
-#         combined_microcell_df = combined_microcell_df.reset_index(drop=True)
-#         df = combined_microcell_df.copy().reset_index(drop=True)
+        combined_microcell_df = combined_microcell_df.reset_index(drop=True)
+        df = combined_microcell_df.copy().reset_index(drop=True)
 
-#         impact = self._calculate_impact(df, weight)
-#         sig = self._calculate_significance(df, weight)
-#         trend = self._calculate_trend(df, remote_data)
+        impact = self._calculate_impact(df, weight)
+        sig = self._calculate_significance(df, weight)
+        trend = self._calculate_trend(df, remote_data)
 
         
 
-#         new_df = pd.DataFrame({'Impact': impact, 'Significance': sig, 'Trend': trend})
-#         mean_impact = new_df['Impact'].mean()
-#         mean_sig    = new_df['Significance'].mean()
-#         mean_trend  = new_df['Trend'].mean()
-#         label = self.classify_sophistication(mean_impact, mean_sig, mean_trend)
+        new_df = pd.DataFrame({'Impact': impact, 'Significance': sig, 'Trend': trend})
+        mean_impact = new_df['Impact'].mean()
+        mean_sig    = new_df['Significance'].mean()
+        mean_trend  = new_df['Trend'].mean()
+        label = self.classify_sophistication(mean_impact, mean_sig, mean_trend)
 
-#         print(df_received['currect_microcell'].unique(),mean_impact,mean_sig,mean_trend,label)
+        print(df_received['currect_microcell'].unique(),mean_impact,mean_sig,mean_trend,label)
         
 
-#         return label
+        return label
     
 
-#     def classify_sophistication(self, mean_impact, mean_sig, mean_trend,
-#                                 t_trend_high=0.95,
-#                                 t_trend_low=0.2,
-#                                 t_sig=0.05,
-#                                 t_impact=0.05):
+    def classify_sophistication(self, mean_impact, mean_sig, mean_trend,
+                                t_trend_high=0.95,
+                                t_trend_low=0.2,
+                                t_sig=0.05,
+                                t_impact=0.05):
 
-#         # Naive
-#         if mean_trend < t_trend_low and mean_sig < t_sig:
-#             return "N"
+        # Naive
+        if mean_trend < t_trend_low and mean_sig < t_sig:
+            return "N"
 
-#         # Sophisticated
-#         if mean_trend >= t_trend_high and mean_impact <= t_impact:
-#             return "S"
+        # Sophisticated
+        if mean_trend >= t_trend_high and mean_impact <= t_impact:
+            return "S"
 
-#         # Knowledgeable
-#         return "K"
+        # Knowledgeable
+        return "K"
 
 
-#     def _process_received_data(self, df_received, correct_data):
-#         # df_received = self._ensure_D_cols(df_received)
+    def _process_received_data(self, df_received, correct_data):
+        # df_received = self._ensure_D_cols(df_received)
 
-#         for i, row in df_received.iterrows():
-#             origin_record = correct_data[correct_data['serviceid'] == row['serviceid']]
-#             if origin_record.empty:
-#                 df_received.loc[i, D_COLS] = ['NC'] * 6
-#             else:
-#                 df_received.loc[i, D_COLS] = origin_record[ATTRS].iloc[0].values
+        for i, row in df_received.iterrows():
+            origin_record = correct_data[correct_data['serviceid'] == row['serviceid']]
+            if origin_record.empty:
+                df_received.loc[i, D_COLS] = ['NC'] * 6
+            else:
+                df_received.loc[i, D_COLS] = origin_record[ATTRS].iloc[0].values
 
-#         return df_received
+        return df_received
 
-#     def _process_generated_data(self, df_generated, correct_data):
-#         # df_generated = self._ensure_D_cols(df_generated)
+    def _process_generated_data(self, df_generated, correct_data):
+        # df_generated = self._ensure_D_cols(df_generated)
 
-#         for i, row in df_generated.iterrows():
-#             provider_other_df = correct_data[
-#                 (correct_data['providerid'] == row['providerid'])
-#             ]
+        for i, row in df_generated.iterrows():
+            provider_other_df = correct_data[
+                (correct_data['providerid'] == row['providerid'])
+            ]
 
-#             if len(provider_other_df) > 1:
-#                 mean_values = provider_other_df[ATTRS].mean()
-#                 df_generated.loc[i, D_COLS] = mean_values.values
-#             else:
-#                 df_generated.loc[i, D_COLS] = ['NC'] * 6
+            if len(provider_other_df) > 1:
+                mean_values = provider_other_df[ATTRS].mean()
+                df_generated.loc[i, D_COLS] = mean_values.values
+            else:
+                df_generated.loc[i, D_COLS] = ['NC'] * 6
 
-#         return df_generated
+        return df_generated
 
-#     def _calculate_impact(self, df_row, weight):
-#         # ensure numeric for subtraction (in case strings slipped through)
-#         d_speed = df_row['speed'] - df_row['D_speed']
-#         d_latency = df_row['latency'] - df_row['D_latency']
-#         d_bandwidth = df_row['bandwidth'] - df_row['D_bandwidth']
-#         d_coverage = df_row['coverage'] - df_row['D_coverage']
-#         d_reliability = df_row['reliability'] - df_row['D_reliability']
-#         d_security = df_row['security'] - df_row['D_security']
+    def _calculate_impact(self, df_row, weight):
+        # ensure numeric for subtraction (in case strings slipped through)
+        d_speed = df_row['speed'] - df_row['D_speed']
+        d_latency = df_row['latency'] - df_row['D_latency']
+        d_bandwidth = df_row['bandwidth'] - df_row['D_bandwidth']
+        d_coverage = df_row['coverage'] - df_row['D_coverage']
+        d_reliability = df_row['reliability'] - df_row['D_reliability']
+        d_security = df_row['security'] - df_row['D_security']
 
-#         impact = (
-#             d_speed * weight[0] +
-#             d_latency * weight[1] +
-#             d_bandwidth * weight[2] +
-#             d_coverage * weight[3] +
-#             d_reliability * weight[4] +
-#             d_security * weight[5]
-#         ).div(5)
+        impact = (
+            d_speed * weight[0] +
+            d_latency * weight[1] +
+            d_bandwidth * weight[2] +
+            d_coverage * weight[3] +
+            d_reliability * weight[4] +
+            d_security * weight[5]
+        ).div(5)
 
-#         impact = impact.clip(lower=0)
-#         return impact
+        impact = impact.clip(lower=0)
+        return impact
 
-#     def _calculate_significance(self, df_row, weight1):
-#         power = 1
-#         powered_matrix = [x ** power for x in weight1]
-#         total_sum = sum(powered_matrix)
-#         weight = [x / total_sum for x in powered_matrix]
+    def _calculate_significance(self, df_row, weight1):
+        power = 1
+        powered_matrix = [x ** power for x in weight1]
+        total_sum = sum(powered_matrix)
+        weight = [x / total_sum for x in powered_matrix]
 
-#         sig_list = []
-#         for i in range(len(df_row)):
-#             # if all attributes equal (weird sentinel), significance = 0
-#             if (df_row.iloc[i]['speed'] == df_row.iloc[i]['latency'] == df_row.iloc[i]['bandwidth'] ==
-#                 df_row.iloc[i]['coverage'] == df_row.iloc[i]['reliability'] == df_row.iloc[i]['security']):
-#                 sig_list.append(0)
-#                 continue
+        sig_list = []
+        for i in range(len(df_row)):
+            # if all attributes equal (weird sentinel), significance = 0
+            if (df_row.iloc[i]['speed'] == df_row.iloc[i]['latency'] == df_row.iloc[i]['bandwidth'] ==
+                df_row.iloc[i]['coverage'] == df_row.iloc[i]['reliability'] == df_row.iloc[i]['security']):
+                sig_list.append(0)
+                continue
 
-#             d = [
-#                 df_row.iloc[i]['speed'] - df_row.iloc[i]['D_speed'],
-#                 df_row.iloc[i]['latency'] - df_row.iloc[i]['D_latency'],
-#                 df_row.iloc[i]['bandwidth'] - df_row.iloc[i]['D_bandwidth'],
-#                 df_row.iloc[i]['coverage'] - df_row.iloc[i]['D_coverage'],
-#                 df_row.iloc[i]['reliability'] - df_row.iloc[i]['D_reliability'],
-#                 df_row.iloc[i]['security'] - df_row.iloc[i]['D_security']
-#             ]
+            d = [
+                df_row.iloc[i]['speed'] - df_row.iloc[i]['D_speed'],
+                df_row.iloc[i]['latency'] - df_row.iloc[i]['D_latency'],
+                df_row.iloc[i]['bandwidth'] - df_row.iloc[i]['D_bandwidth'],
+                df_row.iloc[i]['coverage'] - df_row.iloc[i]['D_coverage'],
+                df_row.iloc[i]['reliability'] - df_row.iloc[i]['D_reliability'],
+                df_row.iloc[i]['security'] - df_row.iloc[i]['D_security']
+            ]
 
-#             num_changed = sum(abs(x) > 0 for x in d)
-#             if num_changed == 0:
-#                 sig_list.append(0)
-#                 continue
+            num_changed = sum(abs(x) > 0 for x in d)
+            if num_changed == 0:
+                sig_list.append(0)
+                continue
 
-#             # counts only positive-direction changes (your original behavior)
-#             significance = (
-#                 (1 if d[0] > 0 else 0) * weight[0] +
-#                 (1 if d[1] > 0 else 0) * weight[1] +
-#                 (1 if d[2] > 0 else 0) * weight[2] +
-#                 (1 if d[3] > 0 else 0) * weight[3] +
-#                 (1 if d[4] > 0 else 0) * weight[4] +
-#                 (1 if d[5] > 0 else 0) * weight[5]
-#             )
+            # counts only positive-direction changes (your original behavior)
+            significance = (
+                (1 if d[0] > 0 else 0) * weight[0] +
+                (1 if d[1] > 0 else 0) * weight[1] +
+                (1 if d[2] > 0 else 0) * weight[2] +
+                (1 if d[3] > 0 else 0) * weight[3] +
+                (1 if d[4] > 0 else 0) * weight[4] +
+                (1 if d[5] > 0 else 0) * weight[5]
+            )
 
-#             significance = max(significance, 0)
-#             sig_list.append(significance / num_changed)
+            significance = max(significance, 0)
+            sig_list.append(significance / num_changed)
 
-#         return sig_list
+        return sig_list
 
-#     def _calculate_trend(self, df_row, dfcorrect):
-#         trend_list = []
+    def _calculate_trend(self, df_row, dfcorrect):
+        trend_list = []
 
-#         for i in range(len(df_row)):
-#             if (df_row.iloc[i]['speed'] == df_row.iloc[i]['latency'] == df_row.iloc[i]['bandwidth'] ==
-#                 df_row.iloc[i]['coverage'] == df_row.iloc[i]['reliability'] == df_row.iloc[i]['security']):
-#                 trend_list.append(0)
-#                 continue
+        for i in range(len(df_row)):
+            if (df_row.iloc[i]['speed'] == df_row.iloc[i]['latency'] == df_row.iloc[i]['bandwidth'] ==
+                df_row.iloc[i]['coverage'] == df_row.iloc[i]['reliability'] == df_row.iloc[i]['security']):
+                trend_list.append(0)
+                continue
 
-#             temp_df = dfcorrect[dfcorrect['providerid'] == df_row.iloc[i]['providerid']]
-#             temp_df = temp_df[temp_df['serviceid'] != df_row.iloc[i]['serviceid']]
+            temp_df = dfcorrect[dfcorrect['providerid'] == df_row.iloc[i]['providerid']]
+            temp_df = temp_df[temp_df['serviceid'] != df_row.iloc[i]['serviceid']]
 
-#             if temp_df.shape[0] > 0:
-#                 means = temp_df[ATTRS].mean()
+            if temp_df.shape[0] > 0:
+                means = temp_df[ATTRS].mean()
 
-#                 s_trend = df_row.iloc[i]['speed'] - means['speed']
-#                 l_trend = df_row.iloc[i]['latency'] - means['latency']
-#                 b_trend = df_row.iloc[i]['bandwidth'] - means['bandwidth']
-#                 c_trend = df_row.iloc[i]['coverage'] - means['coverage']
-#                 r_trend = df_row.iloc[i]['reliability'] - means['reliability']
-#                 sec_trend = df_row.iloc[i]['security'] - means['security']
+                s_trend = df_row.iloc[i]['speed'] - means['speed']
+                l_trend = df_row.iloc[i]['latency'] - means['latency']
+                b_trend = df_row.iloc[i]['bandwidth'] - means['bandwidth']
+                c_trend = df_row.iloc[i]['coverage'] - means['coverage']
+                r_trend = df_row.iloc[i]['reliability'] - means['reliability']
+                sec_trend = df_row.iloc[i]['security'] - means['security']
 
-#                 total_trend = (
-#                     self._normalize_trend(s_trend) +
-#                     self._normalize_trend(l_trend) +
-#                     self._normalize_trend(b_trend) +
-#                     self._normalize_trend(c_trend) +
-#                     self._normalize_trend(r_trend) +
-#                     self._normalize_trend(sec_trend)
-#                 ) / 6
+                total_trend = (
+                    self._normalize_trend(s_trend) +
+                    self._normalize_trend(l_trend) +
+                    self._normalize_trend(b_trend) +
+                    self._normalize_trend(c_trend) +
+                    self._normalize_trend(r_trend) +
+                    self._normalize_trend(sec_trend)
+                ) / 6
 
-#                 total_trend = max(total_trend, 0)
-#             else:
-#                 total_trend = 'NC'
+                total_trend = max(total_trend, 0)
+            else:
+                total_trend = 'NC'
 
-#             trend_list.append(total_trend)
+            trend_list.append(total_trend)
 
-#         return trend_list
+        return trend_list
 
-#     def _normalize_trend(self, trend_value):
-#         min_value = 0
-#         max_value = 5
-#         score = 1 - (trend_value - min_value) / (max_value - min_value)
-#         return max(0, min(score, 1))
+    def _normalize_trend(self, trend_value):
+        min_value = 0
+        max_value = 5
+        score = 1 - (trend_value - min_value) / (max_value - min_value)
+        return max(0, min(score, 1))

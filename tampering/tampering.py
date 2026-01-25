@@ -62,7 +62,7 @@ class Tampering:
         elif type == "S":
             if not dftamper.empty:
 
-                p = 0.5 
+                p = 0.3
 
                 dftamper = self.trust_astimation(dftamper.copy(),[0.3,0.1,0.2,0.1,0.1,0.2])
 
@@ -91,7 +91,7 @@ class Tampering:
         return dftamper
 
 
-    def bma_tampering(self, data, sp_percent, type, each_attribute=10, val=2.5, sig=[0.3,0.1,0.2,0.1,0.1,0.2]):
+    def bma_tampering(self, data, sp_percent, type, each_attribute=20, val=2.5, sig=[0.3,0.1,0.2,0.1,0.1,0.2]):
 
         
         result_df = data.copy()
@@ -156,7 +156,7 @@ class Tampering:
             elif type == "S":
                 if not dftamper.empty:
                     dftamper = self.trust_astimation(dftamper.copy(),[0.3,0.1,0.2,0.1,0.1,0.2])
-                    p = 0.5  # probability of bad-mouthing (stealth level)
+                    p = 0.3  # probability of bad-mouthing (stealth level)
                     grouped = dftamper.groupby('providerid')
                     for providerid, group_df in grouped:
                         if len(group_df) < 2:
